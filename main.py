@@ -51,8 +51,7 @@ def download_audio_from_video(video_url, playlist_title = None):
 
 
 def youtube_audio():
-    #url = input("Enter a YouTube URL: ")
-    url = "https://www.youtube.com/playlist?list=PLaZTexV4AyXiqKa6QShujzAkHLkkKDfSo"
+    url = input("Enter a YouTube URL: ")
 
     # Check if the URL is valid (Youtube)
     if "youtube.com" not in url and "youtu.be" not in url:
@@ -76,7 +75,7 @@ def youtube_audio():
 
                 download_audio_from_video(video_url, playlist_title)
 
-                time.sleep(2) # Wait for 2 seconds between each download
+                #time.sleep(2) # Wait for 2 seconds between each download
     else:
         # download a standalone file
         download_audio_from_video(url)
