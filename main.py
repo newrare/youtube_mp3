@@ -31,22 +31,40 @@ def download_audio_from_video(video_url, playlist_title = None):
         }],
     }
 
-    # Download and get file name converted
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        video           = ydl.extract_info(video_url, download = True) # Download the video to directory_file_origin and get Object video
-        title           = video.get('title', '')
-        title_converted = convert_name(title)
-        file            = f"{title_converted}.mp3"
+    # Get file name converted
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            video           = ydl.extract_info(video_url, download = False)
+            title           = video.get('title', '')
+            title_converted = convert_name(title)
+            file            = f"{title_converted}.mp3"
+    except yt_dlp.utils.DownloadError:
+        print("Error: video cant be downloaded")
+        return
 
-    # After Download, rename origin file to name convertedw
+    # Create directory and file name
+    directory_to_save = directory_download
+
     if(playlist_title):
         directory_to_save = f"{directory_download}{playlist_title}/"
 
         if not os.path.exists(directory_to_save):
             os.makedirs(directory_to_save)
 
-    file_temp = f"{file_temp}.mp3"
-    os.rename(file_temp, os.path.join(directory_to_save, file))
+    file_to_save = os.path.join(directory_to_save, file)
+
+    # Download it
+    if not os.path.exists(file_to_save):
+        ydl.download([video_url])
+
+        file_temp = f"{file_temp}.mp3"
+        os.rename(file_temp, file_to_save)
+
+        print(f"File {file} downloaded, waiting 5 seconds...")
+        time.sleep(5) # Wait 5 seconds after download
+        print(f"Wake up :)")
+    else:
+        print(f"File {file} already exists!")
 
 
 
@@ -75,7 +93,6 @@ def youtube_audio():
 
                 download_audio_from_video(video_url, playlist_title)
 
-                #time.sleep(2) # Wait for 2 seconds between each download
     else:
         # download a standalone file
         download_audio_from_video(url)
