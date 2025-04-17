@@ -1,4 +1,5 @@
 import os
+import re
 
 
 
@@ -7,6 +8,7 @@ def rename():
     # Get arguments
     pattern_remove      = input("Enter a string pattern to remove: ")
     directory_target    = input("Enter an absolute target directory: ")
+
     directory_target    = os.path.expanduser(directory_target)
 
     # Check target directory
@@ -16,19 +18,34 @@ def rename():
 
     # Parse files in the target directory
     for file in os.listdir(directory_target):
-        file_path_origin = os.path.join(directory_target, file)
+        origin_file = file
+        origin_path = os.path.join(directory_target, file)
 
-        print(f"Scanning file: {file_path_origin} ...")
+        # Skip other files
+        if not file.endswith('.mp3'):
+            continue
 
-        if file.endswith('.mp3') and pattern_remove in file:
-            # Rename file
-            file_new        = file.replace(pattern_remove, '').strip()
-            file_path_new   = os.path.join(directory_target, file_new)
+        # Remove pattern from file name
+        if pattern_remove and pattern_remove in file:
+            file = file.replace(pattern_remove, '').strip()
 
-            os.rename(file_path_origin, file_path_new)
-            print(f" -> File renamed: {file_path_new}")
-        else:
-            print(f" -> File not changed: {file_path_origin}")
+        # Remove leading numbers from file name
+        if re.match(r'^[\d#\s-]+', file):
+            file = re.sub(r'^[\d#\s-]+', '', file).strip()
+
+        # Convert S possessive
+        if re.search(r" S ", file):
+            file = re.sub(r" S ", "s ", file)
+
+        # First letter to upper case for each word
+        file = file.title()
+
+        # Save file
+        if file != origin_file:
+            file_path = os.path.join(directory_target, file)
+
+            os.rename(origin_path, file_path)
+            print(f" -> File renamed: {file_path}")
 
 
 
