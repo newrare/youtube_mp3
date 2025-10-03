@@ -22,7 +22,7 @@ def rename():
         origin_path = os.path.join(directory_target, file)
 
         # Skip other files
-        if not file.endswith('.mp3'):
+        if not file.lower().endswith('.mp3'):
             continue
 
         # Remove pattern from file name

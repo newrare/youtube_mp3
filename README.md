@@ -6,10 +6,10 @@ This project contains a script `main.py` that allows you to convert YouTube vide
 
 ## Installation
 
-To use this script, you need to install the `yt_dlp` library. You can install it using the following command:
+To use this script, you need to install the `yt_dlp` and `requests` libraries. You can install it using the following command:
 
 ```sh
-pip install yt_dlp
+pip install yt_dlp requests
 ```
 
 ## License
