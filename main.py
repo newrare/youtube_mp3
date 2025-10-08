@@ -5,11 +5,34 @@ import time
 import unicodedata
 import yt_dlp
 import requests
-#from urllib.parse import urlparse
+import subprocess
 
 
 
 ###METHOD###
+def check_ytdlp_version():
+    try:
+        print("🔍 Checking yt-dlp version...")
+        result = subprocess.run(
+            [sys.executable, '-m', 'pip', 'install', '--upgrade', 'yt-dlp'],
+            capture_output=True, text=True, timeout=60
+        )
+
+        if "Requirement already satisfied" in result.stdout:
+            print("✅ yt-dlp is already up to date")
+        elif "Successfully installed" in result.stdout:
+            print("🆙 yt-dlp has been updated!")
+        else:
+            print("⚠️ Could not verify yt-dlp update status")
+
+    except subprocess.TimeoutExpired:
+        print("⏰ Update check timed out, continuing with current version...")
+
+    except Exception as e:
+        print(f"⚠️ Could not check for yt-dlp updates: {e}")
+
+
+
 def get_video_title_from_url(video_url: str) -> str:
     try:
         headers = {
@@ -25,6 +48,7 @@ def get_video_title_from_url(video_url: str) -> str:
         if title_match:
             title = title_match.group(1)
             title = re.sub(r'\s*-\s*YouTube\s*$', '', title)
+
             return title.strip()
         else:
             print("⚠️ Could not extract title from page")
@@ -55,30 +79,11 @@ def clean_file_temp(file_temp: str) -> bool:
 
 
 
-def download_audio_from_video(video_url, playlist_title = None, is_need_sleep = True) -> bool:
+def download_audio_from_video(video_url, playlist_title = None) -> bool:
     # Get (or create) download directory
     user_home_directory = os.path.expanduser('~')
     directory_download  = f"{user_home_directory}/download/"
     file_temp           = os.path.join(directory_download, 'temp')
-
-    # Format for download
-    ydl_opts = {
-        'outtmpl'       : file_temp,
-        'ignoreerrors'  : False,
-        'no_warnings'   : True,
-        'extractaudio'  : True,
-        'quiet'         : True,
-        'no_color'      : True,
-        'noprogress'    : True,
-        'postprocessors': [{
-            'key'               : 'FFmpegExtractAudio',
-            'preferredcodec'    : 'mp3',
-            'preferredquality'  : '192',
-        }],
-    }
-
-    # Create the downloader
-    ydl = yt_dlp.YoutubeDL(ydl_opts)
 
     # Get video title file
     title           = get_video_title_from_url(video_url)
@@ -104,13 +109,48 @@ def download_audio_from_video(video_url, playlist_title = None, is_need_sleep = 
     if not os.path.exists(file_to_save):
         print(f"📥 Starting download: {file}")
 
+        # Create the downloader with headers and options
+        ydl_headers = {
+            'User-Agent'       : 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept'           : 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Language'  : 'en-us,en;q=0.5',
+            'Accept-Encoding'  : 'gzip,deflate',
+            'Accept-Charset'   : 'ISO-8859-1,utf-8;q=0.7,*;q=0.7',
+            'Keep-Alive'       : '300',
+            'Connection'       : 'keep-alive',
+        }
+
+        ydl_opts = {
+            'outtmpl'                   : file_temp,
+            'http_headers'              : ydl_headers,
+            'retry_sleep_functions'     : {'http': lambda x: min(2 ** x, 10)},
+            'retries'                   : 3,
+            'fragment_retries'          : 3,
+            'socket_timeout'            : 30,
+            'sleep_interval'            : 1,
+            'max_sleep_interval'        : 5,
+            'sleep_interval_requests'   : 1,
+            'extract_flat'              : False,
+            'writethumbnail'            : False,
+            'writeinfojson'             : False,
+            'ignoreerrors'              : False,
+            'logtostderr'               : False,
+            'quiet'                     : True,
+            'no_warnings'               : True,
+            'no_color'                  : True,
+            'noprogress'                : True,
+            'logger'                    : None,
+            'postprocessors'            : [{
+                'key'               : 'FFmpegExtractAudio',
+                'preferredcodec'    : 'mp3',
+                'preferredquality'  : '192',
+            }],
+        }
+
+        ydl = yt_dlp.YoutubeDL(ydl_opts)
+
         try:
             ydl.download([video_url])
-
-            if is_need_sleep:
-                print(f"⏳ Pausing 5 seconds before next download...")
-                time.sleep(5)
-
         except Exception as error_result:
             print(f"❌ Unexpected error: {str(error_result)}")
             time.sleep(5)
@@ -143,6 +183,9 @@ def download_audio_from_video(video_url, playlist_title = None, is_need_sleep = 
 
 ###MAIN###
 if __name__ == "__main__":
+    # Check yt-dlp updates (helps with YouTube compatibility)
+    check_ytdlp_version()
+
     # Check if URL provided as command line argument
     if len(sys.argv) > 1:
         url = sys.argv[1]
@@ -176,15 +219,9 @@ if __name__ == "__main__":
 
             # Download each video
             for i, entry in enumerate(playlist_dict['entries'], 1):
-                is_need_sleep = True
+                video_url = entry['url']
 
-                # no sleep for last loop
-                if i == len(playlist_dict['entries']):
-                    is_need_sleep = False
-
-                # Downloading
-                video_url   = entry['url']
-                download_audio_from_video(video_url, playlist_title, is_need_sleep)
+                download_audio_from_video(video_url, playlist_title)
 
     # Single
     else:

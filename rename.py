@@ -40,6 +40,9 @@ def rename():
         # First letter to upper case for each word
         file = file.title()
 
+        # Fix .mp3 extension
+        file = re.sub(r'\s*\.(mp3|MP3|Mp3|mP3)$', '.mp3', file)
+
         # Save file
         if file != origin_file:
             file_path = os.path.join(directory_target, file)
