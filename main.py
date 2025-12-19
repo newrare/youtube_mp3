@@ -2,10 +2,10 @@ import os
 import re
 import sys
 import time
-import unicodedata
 import yt_dlp
 import requests
 import subprocess
+from Tool import convert_name
 
 
 
@@ -57,29 +57,6 @@ def get_video_title_from_url(video_url: str) -> str:
     except Exception as error:
         print(f"❌ Unexpected error extracting title: {str(error)}")
         return "Unknown_Video"
-
-
-
-def convert_name(name_to_convert: str) -> str:
-    # Normalize unicode
-    name = unicodedata.normalize('NFKD', name_to_convert).encode('ASCII', 'ignore').decode('utf-8').lower()
-
-    # Remove apostrophe
-    name = re.sub(r"[’']", '', name)
-
-    # Remove ' 39' (artefact from apostrophe conversion or normalization)
-    name = re.sub(r' 39', '', name)
-
-    # Replace special caracters
-    name = re.sub(r'[^0-9a-zA-Z-]+', ' ', name)
-
-    # No space for contraction (ex: it s -> its, don t -> dont)
-    name = re.sub(r'\b(\w+)\s([st])\b', r'\1\2', name)
-
-    # Remove bad space and set Title Case for all words
-    name = re.sub(r'\s+', ' ', name).strip().title()
-
-    return name
 
 
 
