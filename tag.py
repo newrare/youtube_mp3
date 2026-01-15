@@ -1,7 +1,7 @@
 import os
 import sys
 
-from collections import Counter
+from collections        import Counter
 
 from mutagen.easyid3    import EasyID3
 from mutagen.id3        import ID3NoHeaderError, ID3
@@ -10,7 +10,7 @@ from mutagen.mp4        import MP4
 from mutagen.oggvorbis  import OggVorbis
 from mutagen.wave       import WAVE
 
-from Tool import convert_name, AUDIO_EXTENSIONS
+from Tool               import convert_name, AUDIO_EXTENSIONS
 
 
 
@@ -165,6 +165,10 @@ def process_audio_tags(target_path: str) -> None:
         print(f"❌ Path is not a directory: {target_path}")
         return
 
+    # Ask if user wants to force tag updates
+    force_update = input("🔄 Do you want to force/redo tags even if tags are already set? (yes/no) [no]: ").strip().lower()
+    force_update = force_update in ['yes', 'y']
+
     # Get all audio files
     audio_files = []
 
@@ -185,28 +189,55 @@ def process_audio_tags(target_path: str) -> None:
 
     # Extract tags from all files
     files_tags = []
+    files_to_process = []
 
     for file_path in audio_files:
         tags = get_audio_tags(file_path)
-
         files_tags.append(tags)
-        print(f"📄 {os.path.basename(file_path)}: Artist={tags['artist']}, Album={tags['album']}, Genre={tags['genre']}")
 
-    # Find most common tags
-    common_artist = find_most_common_tag(files_tags, 'artist')
-    common_album = find_most_common_tag(files_tags, 'album')
-    common_genre = find_most_common_tag(files_tags, 'genre')
+        # Check if file already has all tags
+        has_all_tags = tags['artist'] and tags['album'] and tags['genre']
 
-    # Prompt user if tags are missing
-    if not common_artist:
-        common_artist = input("🎤 Artist name not found. Enter artist name: ").strip()
+        if not force_update and has_all_tags:
+            print(f"⏭️  {os.path.basename(file_path)}: Already tagged (Artist={tags['artist']}, Album={tags['album']}, Genre={tags['genre']}) - Skipping")
+        else:
+            files_to_process.append(file_path)
+            if not force_update:
+                status = "Already tagged" if has_all_tags else "Missing tags"
+                print(f"📄 {os.path.basename(file_path)}: Artist={tags['artist']}, Album={tags['album']}, Genre={tags['genre']} [{status}]")
+            else:
+                print(f"📄 {os.path.basename(file_path)}: Will be retagged")
 
-    if not common_album:
-        common_album = input("💿 Album name not found. Enter album name: ").strip()
+    # If no files need processing, exit
+    if not files_to_process:
+        print(f"\n✨ All files already have complete tags. Nothing to do!")
+        return
 
-    if not common_genre:
-        print(f"🎵 Genre not found. Valid genres: {', '.join(VALID_GENRES)}")
+    print(f"\n🔧 {len(files_to_process)} file(s) will be processed")
+
+    # If force update, ask user for tags directly, otherwise find most common tags
+    if force_update:
+        # Force mode: ask user for all tags
+        common_artist = input("🎤 Enter artist name: ").strip()
+        common_album = input("💿 Enter album name: ").strip()
+        print(f"🎵 Valid genres: {', '.join(VALID_GENRES)}")
         common_genre = input("Enter genre: ").strip()
+    else:
+        # Normal mode: find most common tags
+        common_artist = find_most_common_tag(files_tags, 'artist')
+        common_album = find_most_common_tag(files_tags, 'album')
+        common_genre = find_most_common_tag(files_tags, 'genre')
+
+        # Prompt user if tags are missing
+        if not common_artist:
+            common_artist = input("🎤 Artist name not found. Enter artist name: ").strip()
+
+        if not common_album:
+            common_album = input("💿 Album name not found. Enter album name: ").strip()
+
+        if not common_genre:
+            print(f"🎵 Genre not found. Valid genres: {', '.join(VALID_GENRES)}")
+            common_genre = input("Enter genre: ").strip()
 
     # Normalize tags
     artist_normalized   = convert_name(common_artist) if common_artist else None
@@ -226,8 +257,8 @@ def process_audio_tags(target_path: str) -> None:
     print(f"   Genre: {genre_normalized}")
     print()
 
-    # Update all files
-    for file_path in audio_files:
+    # Update files that need processing
+    for file_path in files_to_process:
         filename = os.path.basename(file_path)
         success = set_audio_tags(file_path, artist_normalized, album_normalized, genre_normalized)
 

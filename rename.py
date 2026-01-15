@@ -1,6 +1,8 @@
 import os
 import re
 
+from Tool import convert_name
+
 
 
 ###METHOD###
@@ -8,12 +10,11 @@ def rename():
     # Get arguments
     pattern_remove      = input("Enter a string pattern to remove: ")
     directory_target    = input("Enter an absolute target directory: ")
-
     directory_target    = os.path.expanduser(directory_target)
 
     # Check target directory
     if not os.path.isdir(directory_target):
-        print(f"The directory {directory_target} does not exist!")
+        print(f"❌ The directory {directory_target} does not exist!")
         return
 
     # Parse files in the target directory
@@ -33,15 +34,11 @@ def rename():
         if re.match(r'^[\d#\s-]+', file):
             file = re.sub(r'^[\d#\s-]+', '', file).strip()
 
-        # Convert S possessive
-        if re.search(r" S ", file):
-            file = re.sub(r" S ", "s ", file)
+        # Remove .mp3 extension temporarily
+        file_without_ext = re.sub(r'\.(mp3|MP3|Mp3|mP3)$', '', file, flags=re.IGNORECASE)
 
-        # First letter to upper case for each word
-        file = file.title()
-
-        # Fix .mp3 extension
-        file = re.sub(r'\s*\.(mp3|MP3|Mp3|mP3)$', '.mp3', file)
+        # Apply convert_name transformation
+        file = convert_name(file_without_ext) + '.mp3'
 
         # Save file
         if file != origin_file:
